@@ -1,0 +1,35 @@
+name: "PR Size Labeler"
+description: "Labels pull requests size/XS..size/XL based on configurable changed-line thresholds and glob exclusions."
+inputs:
+  github-token:
+    description: "GitHub token used to read PR file stats and manage labels."
+    required: false
+    default: ${{ github.token }}
+  exclude-patterns:
+    description: "Comma-separated (or newline-separated) glob patterns to exclude from the changed-line count."
+    required: false
+    default: "**/pnpm-lock.yaml,**/package-lock.json,**/yarn.lock,**/*.lock,dist/**,**/*.min.js"
+  xs-max:
+    description: "Exclusive upper bound (changed lines) for size/XS."
+    required: false
+    default: "10"
+  s-max:
+    description: "Exclusive upper bound (changed lines) for size/S."
+    required: false
+    default: "50"
+  m-max:
+    description: "Exclusive upper bound (changed lines) for size/M."
+    required: false
+    default: "250"
+  l-max:
+    description: "Exclusive upper bound (changed lines) for size/L."
+    required: false
+    default: "1000"
+outputs:
+  label:
+    description: "The size label that was applied."
+  total-changed-lines:
+    description: "Total changed lines counted (after exclusions)."
+runs:
+  using: "node20"
+  main: "dist/index.js"
