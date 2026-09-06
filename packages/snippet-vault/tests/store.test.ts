@@ -102,6 +102,26 @@ describe("store", () => {
     expect(searchSnippets(db, "zzz-no-match-zzz")).toEqual([]);
   });
 
+  it("treats SQL LIKE wildcard characters in the query as literal text", () => {
+    // "%" and "_" are LIKE metacharacters; a naive implementation that fails
+    // to escape them would treat a literal "50%" query as "50" + wildcard,
+    // spuriously matching content that merely starts with "50".
+    saveSnippet(db, { name: "a", content: "progress: 50% done", lang: null, tags: [] });
+    saveSnippet(db, { name: "b", content: "progress: 5000 done (no percent)", lang: null, tags: [] });
+
+    const percentResults = searchSnippets(db, "50%");
+    expect(percentResults.map((s) => s.name)).toEqual(["a"]);
+
+    // "_" is the LIKE single-character wildcard. If it were left unescaped,
+    // querying "c_t" would also match "cat" and "cot" via wildcard
+    // expansion. None of the saved snippets contain a literal "c_t", so a
+    // correctly-escaped search must return no results at all.
+    saveSnippet(db, { name: "c", content: "cat", lang: null, tags: [] });
+    saveSnippet(db, { name: "d", content: "cot", lang: null, tags: [] });
+    const underscoreResults = searchSnippets(db, "c_t");
+    expect(underscoreResults).toEqual([]);
+  });
+
   it("filters search results by an exact tag", () => {
     saveSnippet(db, { name: "a", content: "shared text", lang: null, tags: ["python"] });
     saveSnippet(db, { name: "b", content: "shared text", lang: null, tags: ["javascript"] });

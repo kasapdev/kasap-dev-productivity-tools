@@ -59,6 +59,24 @@ describe("fetchChangedFiles", () => {
     expect(files).toHaveLength(101);
     expect(listFiles).toHaveBeenCalledTimes(2);
   });
+
+  it("stops at the MAX_FILE_PAGES safety cap instead of looping forever when every page is full", async () => {
+    // Every page comes back full (100 items), so without a safety cap this
+    // would paginate indefinitely. It must stop after exactly 20 pages.
+    const listFiles = vi.fn().mockImplementation(async ({ page }: { page: number }) => ({
+      data: Array.from({ length: 100 }, (_, i) => ({
+        filename: `p${page}-f${i}.ts`,
+        additions: 1,
+        deletions: 0,
+      })),
+    }));
+    const octokit = makeFakeOctokit({ pulls: { listFiles } });
+
+    const files = await fetchChangedFiles(octokit, { owner: "o", repo: "r", pullNumber: 1 });
+
+    expect(listFiles).toHaveBeenCalledTimes(20);
+    expect(files).toHaveLength(2000);
+  });
 });
 
 describe("fetchCurrentLabels", () => {
