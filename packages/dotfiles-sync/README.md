@@ -36,9 +36,14 @@ the repo directory with `--repo <dir>`, or the manifest path directly with
 - `source` -- path **relative to the repo dir**. For `secret: true` entries,
   this is the path to the *encrypted envelope* (see below), not plaintext.
   There's no enforced suffix, but this tool's own `encrypt` command defaults
-  to `<basename>.enc` by convention.
+  to `<basename>.enc` by convention. Multiple entries may share a `source`
+  (e.g. linking one repo file to two different targets).
 - `target` -- absolute path, or a `~`-relative path, of where the file/dir
-  should end up in your home directory.
+  should end up in your home directory. Must be unique **after resolving**
+  `~` and relative paths -- two entries that resolve to the same target are
+  rejected at load time, since they'd otherwise fight over it (each `link`
+  run would see the other's link as "diverged" and re-link over it, piling
+  up a fresh backup file every time).
 - `secret` -- optional, defaults to `false`.
 
 ## Commands

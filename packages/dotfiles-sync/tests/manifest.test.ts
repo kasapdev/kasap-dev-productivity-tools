@@ -60,6 +60,42 @@ describe("validateManifest", () => {
       validateManifest({ entries: [{ name: "x", source: "a", target: "~/.a", secret: "yes" }] })
     ).toThrow();
   });
+
+  it("rejects two entries whose targets resolve to the same path", () => {
+    expect(() =>
+      validateManifest({
+        entries: [
+          { name: "a", source: "a", target: "~/.same" },
+          { name: "b", source: "b", target: "~/.same" },
+        ],
+      })
+    ).toThrow(/both resolve to the same target path/);
+  });
+
+  it("rejects same-target entries even when spelled differently (~ vs expanded absolute path)", () => {
+    const expanded = join(homedir(), ".same");
+    expect(() =>
+      validateManifest({
+        entries: [
+          { name: "a", source: "a", target: "~/.same" },
+          { name: "b", source: "b", target: expanded },
+        ],
+      })
+    ).toThrow(/both resolve to the same target path/);
+  });
+
+  it("allows distinct entries that merely share a source", () => {
+    // Linking the same repo file to two different locations is legitimate
+    // (e.g. mirroring one config to two target paths) -- only duplicate
+    // *targets* are a conflict, not duplicate sources.
+    const manifest = validateManifest({
+      entries: [
+        { name: "a", source: "shared", target: "~/.a" },
+        { name: "b", source: "shared", target: "~/.b" },
+      ],
+    });
+    expect(manifest.entries).toHaveLength(2);
+  });
 });
 
 describe("path helpers", () => {

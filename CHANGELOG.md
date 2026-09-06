@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Fixed
+
+- `packages/dotfiles-sync`: `validateManifest` now rejects two manifest
+  entries whose `target` resolves to the same path (comparing resolved, not
+  raw, paths, so `"~/.foo"` and its expanded absolute equivalent are caught
+  too). Previously this went unvalidated: two entries sharing a target would
+  fight over it on every `link` run, each treating the other's link as
+  "diverged" and re-linking over it, silently piling up a fresh
+  `target.backup.N` file each time the tool ran.
+
 ## 2026-09-06
 
 ### Added

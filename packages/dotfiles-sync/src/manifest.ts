@@ -49,6 +49,17 @@ function isNonEmptyString(v: unknown): v is string {
   return typeof v === "string" && v.length > 0;
 }
 
+/**
+ * Normalize a manifest `target` for duplicate detection: resolve `~` and
+ * relative paths the same way `resolveTargetPath` does, then case-fold on
+ * Windows (whose filesystem is normally case-insensitive), mirroring
+ * `normalizeForCompare` in linker.ts.
+ */
+function normalizeTargetForDedup(target: string): string {
+  const resolved = resolveTargetPath(target);
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+}
+
 /** Validate an arbitrary parsed-JSON value as a Manifest, throwing a descriptive error otherwise. */
 export function validateManifest(data: unknown): Manifest {
   if (data === null || typeof data !== "object" || Array.isArray(data)) {
@@ -61,6 +72,7 @@ export function validateManifest(data: unknown): Manifest {
   }
 
   const seen = new Set<string>();
+  const seenTargets = new Map<string, string>();
   const entries: DotfileEntry[] = entriesRaw.map((item, index) => {
     if (item === null || typeof item !== "object") {
       throw new Error(`entries[${index}] must be an object`);
@@ -88,6 +100,22 @@ export function validateManifest(data: unknown): Manifest {
       throw new Error(`Duplicate manifest entry name: "${e.name}"`);
     }
     seen.add(e.name);
+
+    // Two entries resolving to the same target would fight over it: each
+    // `link` run would see the other's symlink/copy as "diverged", back it
+    // up, and relink to itself -- silently piling up a fresh
+    // `target.backup.N` file every time the tool runs. Catch this at load
+    // time instead, comparing resolved (not raw) paths so "~/.foo" and its
+    // expanded absolute equivalent are still recognized as the same target.
+    const normalizedTarget = normalizeTargetForDedup(e.target);
+    const conflictingName = seenTargets.get(normalizedTarget);
+    if (conflictingName !== undefined) {
+      throw new Error(
+        `entries "${conflictingName}" and "${e.name}" both resolve to the same target path ` +
+          `("${resolveTargetPath(e.target)}"); each manifest entry must have a unique target`
+      );
+    }
+    seenTargets.set(normalizedTarget, e.name);
 
     return {
       name: e.name,
