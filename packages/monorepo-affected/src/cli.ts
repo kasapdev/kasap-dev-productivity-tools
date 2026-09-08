@@ -9,6 +9,7 @@ import {
   mapFilesToPackages,
 } from "./gitDiff.js";
 import { runScriptForPackages } from "./runner.js";
+import { computeTestImpact } from "./testImpact.js";
 
 interface CliOptions {
   root: string;
@@ -16,6 +17,12 @@ interface CliOptions {
   from?: string;
   to?: string;
   run?: string;
+  /**
+   * `true` when `--test-impact` was passed with no value (use the default
+   * script name "test"), a string when passed with an explicit script name,
+   * or `undefined` when the flag wasn't passed at all (feature is opt-in).
+   */
+  testImpact?: string | true;
 }
 
 const program = new Command();
@@ -32,6 +39,11 @@ program
   .option(
     "--run <script>",
     "topologically sort the affected packages and run this npm script in each",
+  )
+  .option(
+    "--test-impact [script]",
+    'report which affected packages define <script> (default: "test") and should ' +
+      "have it run, and which were affected but have no such script",
   )
   .action(async (options: CliOptions) => {
     if ((options.from && !options.to) || (!options.from && options.to)) {
@@ -55,12 +67,18 @@ program
       runScriptForPackages(order, nodes, options.run);
     }
 
+    const testImpactScript = options.testImpact === true ? "test" : options.testImpact;
+    const testImpact = testImpactScript
+      ? computeTestImpact(affected, nodes, testImpactScript)
+      : undefined;
+
     if (options.json) {
       console.log(
         JSON.stringify(
           {
             directlyChanged: Array.from(directlyChanged).sort(),
             affected: Array.from(affected).sort(),
+            ...(testImpact ? { testImpact } : {}),
           },
           null,
           2,
@@ -69,6 +87,22 @@ program
     } else {
       for (const name of Array.from(affected).sort()) {
         console.log(name);
+      }
+
+      if (testImpact) {
+        console.log(`\nTest impact (script: "${testImpact.scriptName}"):`);
+        if (testImpact.toTest.length === 0) {
+          console.log("  (none of the affected packages define this script)");
+        } else {
+          for (const entry of testImpact.toTest) {
+            console.log(`  ${entry.name}`);
+          }
+        }
+        if (testImpact.skipped.length > 0) {
+          console.log(
+            `Skipped (no "${testImpact.scriptName}" script): ${testImpact.skipped.join(", ")}`,
+          );
+        }
       }
     }
   });

@@ -11,7 +11,7 @@ built as a pnpm workspace monorepo (TypeScript + ESM throughout).
 | [`snippet-vault`](packages/snippet-vault) | Personal code-snippet manager backed by SQLite, with full-text search and clipboard copy support. |
 | [`pr-size-labeler`](packages/pr-size-labeler) | GitHub Action that labels pull requests `size/XS`..`size/XL` based on configurable changed-line thresholds and glob exclusions. |
 | [`stale-branch-cleaner`](packages/stale-branch-cleaner) | Reports stale local/remote git branches (merged + old, or old + unmerged) and can generate a review-first cleanup script. Never deletes anything itself. |
-| [`monorepo-affected`](packages/monorepo-affected) | Computes which workspace packages are affected by a git diff via dependency-graph transitive closure, and can run a script across them in topological order. |
+| [`monorepo-affected`](packages/monorepo-affected) | Computes which workspace packages are affected by a git diff via dependency-graph transitive closure, can run a script across them in topological order, and can output a test-impact report (`--test-impact`) for CI test selection. |
 
 ## Conventions
 

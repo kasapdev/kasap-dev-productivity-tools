@@ -16,6 +16,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   "diverged" and re-linking over it, silently piling up a fresh
   `target.backup.N` file each time the tool ran.
 
+## 2026-09-08
+
+### Added
+
+- `packages/monorepo-affected` (0.1.0 -> 0.2.0): a `--test-impact [script]`
+  CLI flag and `computeTestImpact` function (`src/testImpact.ts`). Reuses the
+  existing affected-package set to produce a CI-actionable report: which
+  affected packages actually define `script` in their `package.json`
+  (default `"test"`) and should have it run (`toTest`, with each entry's
+  resolved directory and literal script command), versus which were
+  affected but define no such script and can be skipped (`skipped`).
+  Available in both text and `--json` output. Added `packages/monorepo-affected/README.md`
+  (the package previously had none, despite the repo's stated per-package
+  convention).
+- `packages/monorepo-affected`: `tests/gitDiff.test.ts`, covering
+  `parsePorcelainStatus`, `parseNameOnlyDiff`, and `mapFilesToPackages` —
+  previously `src/gitDiff.ts` had no tests at all. Includes an edge case for
+  `mapFilesToPackages` where one package's directory name is a literal
+  string-prefix of a sibling's (e.g. `packages/foo` vs. `packages/foo-bar`),
+  confirming files under `foo-bar` are not misattributed to `foo`; no bug
+  found, the existing trailing-slash-guarded prefix check already handles it
+  correctly.
+
 ## 2026-09-06
 
 ### Added
